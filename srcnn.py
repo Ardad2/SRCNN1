@@ -5,6 +5,7 @@ import torch, torch.nn as nn, torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 from tqdm import tqdm
+import numpy as np
 
 #Configuration
 
@@ -25,10 +26,10 @@ def bicubic_down_up(hr_img, scale=SCALE):
     lr_up = lr.resize((w, h), Image.BICUBIC)  # classic SRCNN input
     return lr_up, hr_img
 
-def to_tensor(img):  # [0,1] CHW float
-    return torch.from_numpy(
-        (torch.ByteTensor(torch.ByteStorage.from_buffer(img.tobytes())).view(img.size[1], img.size[0], 3).numpy()/255.0)
-    ).permute(2,0,1).float()
+def to_tensor(img):
+    arr = np.array(img).astype("float32") / 255.0    # HWC in [0,1]
+    return torch.from_numpy(arr).permute(2,0,1)      # CHW
+
 
 class HRFolder(Dataset):
     def __init__(self, root, patch=PATCH):
@@ -98,13 +99,17 @@ def main():
                 torch.save(net.state_dict(), "checkpoints/srcnn_best.pth")
     # save a visual
     with torch.no_grad():
-        lr_up, hr = ds[0]
-        lr_up = lr_up.unsqueeze(0).to(DEVICE); hr = hr.squeeze(0).to(DEVICE)
-        sr = net(lr_up).squeeze(0).clamp(0,1).cpu()
-        def to_pil(t): return Image.fromarray((t.permute(1,2,0).numpy()*255).astype('uint8'))
-        to_pil(hr).save("hr_gt.png")
-        to_pil(lr_up.squeeze(0).cpu()).save("lr_bicubic.png")
+        lr_up_cpu, hr_cpu = ds[0]                       # stay on CPU for saving
+        lr_up = lr_up_cpu.unsqueeze(0).to(DEVICE)
+        hr = hr_cpu.unsqueeze(0).to(DEVICE)
+
+        sr = net(lr_up).squeeze(0).clamp(0,1)
+
+        to_pil(hr_cpu).save("hr_gt.png")
+        to_pil(lr_up_cpu).save("lr_bicubic.png")
         to_pil(sr).save("sr_srcnn.png")
         print("Saved: hr_gt.png, lr_bicubic.png, sr_srcnn.png")
+
+
 if __name__ == "__main__":
     main()
