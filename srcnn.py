@@ -84,7 +84,7 @@ def main():
             sr = net(lr_up)
             loss = F.mse_loss(sr, hr)
             opt.zero_grad(); loss.backward(); opt.step()
-            pbar.set_postfix(loss=float(loss))
+            pbar.set_postfix(loss=float(loss.detach()))
         # quick val on a few samples
         net.eval()
         with torch.no_grad():
@@ -98,17 +98,23 @@ def main():
                 os.makedirs("checkpoints", exist_ok=True)
                 torch.save(net.state_dict(), "checkpoints/srcnn_best.pth")
     # save a visual
-    with torch.no_grad():
-        lr_up_cpu, hr_cpu = ds[0]                       # stay on CPU for saving
-        lr_up = lr_up_cpu.unsqueeze(0).to(DEVICE)
-        hr = hr_cpu.unsqueeze(0).to(DEVICE)
 
-        sr = net(lr_up).squeeze(0).clamp(0,1)
+    with torch.no_grad():
+        lr_up_cpu, hr_cpu = ds[0]                        # keep CPU copies
+        lr_up = lr_up_cpu.unsqueeze(0).to(DEVICE)
+        sr = net(lr_up).squeeze(0).clamp(0,1)            # on DEVICE; to_pil handles CPU move
 
         to_pil(hr_cpu).save("hr_gt.png")
         to_pil(lr_up_cpu).save("lr_bicubic.png")
         to_pil(sr).save("sr_srcnn.png")
         print("Saved: hr_gt.png, lr_bicubic.png, sr_srcnn.png")
+
+
+def to_pil(tensor):
+    # tensor: CHW in [0,1] on any device
+    t = tensor.detach().clamp(0,1).cpu().permute(1,2,0).numpy()  # HWC
+    from PIL import Image
+    return Image.fromarray((t*255).astype('uint8'))
 
 
 if __name__ == "__main__":
