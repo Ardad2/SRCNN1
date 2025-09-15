@@ -97,20 +97,6 @@ def main():
             opt.zero_grad(); loss.backward(); opt.step()
             pbar.set_postfix(loss=float(loss.detach()))
 
-        # quick val on a few samples
-        #net.eval()
-        #with torch.no_grad():
-        #    lr_up, hr = ds[0]
-        #    lr_up = lr_up.unsqueeze(0).to(DEVICE); hr = hr.unsqueeze(0).to(DEVICE)
-        #    sr = net(lr_up).clamp(0,1)
-        #    bic_psnr = psnr(lr_up, hr);  sr_psnr = psnr(sr, hr)
-        #   print(f"[Val] Bicubic PSNR: {bic_psnr:.2f} dB | SRCNN PSNR: {sr_psnr:.2f} dB")
-        #    if sr_psnr > best:
-        #        best = sr_psnr
-        #        os.makedirs("checkpoints", exist_ok=True)
-        #        torch.save(net.state_dict(), "checkpoints/srcnn_best.pth")
-
-        # replace your current quick val block
         net.eval()
         with torch.no_grad():
             K = 8
@@ -136,11 +122,6 @@ def main():
         
         sched.step()
 
-
-
-
-
-
     # save a visual
 
     with torch.no_grad():
@@ -156,8 +137,6 @@ def main():
         to_pil(lr_up_cpu).save("lr_bicubic.png")
         to_pil(sr).save("sr_srcnn.png")
         print("Saved: hr_gt.png, lr_bicubic.png, sr_srcnn.png")
-
-
 
 
 def to_pil(tensor: torch.Tensor) -> Image.Image:

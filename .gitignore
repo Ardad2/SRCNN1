@@ -1,0 +1,38 @@
+# Overwrite .gitignore with a clean version
+cat > .gitignore <<'EOF'
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.ipynb_checkpoints/
+
+# Virtual environments (keep venv outside the repo if possible)
+.venv/
+venv/
+env/
+
+# Logs / temp
+*.log
+
+# Downloads / extracted datasets
+_tmp_sr/
+*.tar
+*.zip
+
+# Training data (don’t version raw datasets)
+data/hr_images/
+data/sample_images/
+
+# Model artifacts / outputs
+checkpoints/
+*.pth
+hr_gt.png
+lr_bicubic.png
+sr_srcnn.png
+EOF
+
+# Stage the new ignore file
+git add .gitignore
